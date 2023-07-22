@@ -7,6 +7,12 @@ jobs:
             matrix:
                 node-version: [18.16.1]
         runs-on: ubuntu-latest
+        env:
+            MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+            PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
+            PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
         steps:
             - uses: actions/checkout@v1
             - name: Use Node.js ${{ matrix.node-version }}
@@ -18,11 +24,6 @@ jobs:
                   npm install
               env:
                   CI: true
-                  MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
-                  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-                  PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-                  PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
-                  PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
             - name: zip
               uses: montudor/action-zip@v0.1.0
               with:
