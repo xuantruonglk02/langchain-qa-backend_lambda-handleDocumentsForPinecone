@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PineconeClient } from '@pinecone-database/pinecone';
 import fs from 'fs';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
@@ -6,6 +6,7 @@ import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
+import mongoose from 'mongoose';
 import { cleanTmpDirectory, generateTmpFilePath } from './helpers.mjs';
 
 const DocumentExtension = {
@@ -21,17 +22,24 @@ export const handler = async (event) => {
         const fileExtension = fileKey.split('.').at(-1);
 
         // download file
-        const fileAsBuffer = await downloadFile(
-            bucketRegion,
-            bucketName,
-            fileKey
-        );
+        // get file information in db
+        const [fileAsBuffer, file] = await Promise.all([
+            downloadFile(bucketRegion, bucketName, fileKey),
+            getFileDetailFromDB(fileKey),
+        ]);
+        const fileId = file._id.toString();
+        const userId = file.createdBy.toString();
 
         // save file to tmp folder
         const tmpFilePath = await saveFile(fileAsBuffer, fileExtension);
 
         // load and split file
         const splittedDoc = await splitFile(tmpFilePath, fileExtension);
+        // add file information into metadata
+        splittedDoc.forEach((doc) => {
+            doc.metadata.fileId = fileId;
+            doc.metadata.userId = userId;
+        });
 
         // add document to Pinecone
         await addDocumentToPinecone(splittedDoc);
@@ -69,6 +77,26 @@ async function downloadFile(bucketRegion, bucketName, fileKey) {
         const getResponse = await s3Client.send(getObjectCommand);
         const fileAsBuffer = await getResponse.Body.transformToByteArray();
         return fileAsBuffer;
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function getFileDetailFromDB(fileKey) {
+    try {
+        const connection = mongoose.createConnection(
+            process.env.MONGODB_CONNECTION_STRING
+        );
+        const FileModel = connection.model('File', {}, 'files');
+
+        const file = await FileModel.findOne({
+            key: fileKey,
+            deletedAt: {
+                $exists: true,
+                $eq: null,
+            },
+        }).lean();
+        return file;
     } catch (error) {
         throw error;
     }
