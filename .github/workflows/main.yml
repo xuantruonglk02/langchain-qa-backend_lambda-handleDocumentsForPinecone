@@ -7,18 +7,20 @@ jobs:
             matrix:
                 node-version: [18.16.1]
         runs-on: ubuntu-latest
-        env:
-            MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
-            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-            PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-            PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
-            PINECONE_INDEX: ${{ secrets.PINECONE_INDEX }}
         steps:
             - uses: actions/checkout@v1
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v1
               with:
                   node-version: ${{ matrix.node-version }}
+            - name: create env file
+              run: |
+                  touch .env
+                  echo MONGODB_CONNECTION_STRING=${{ secrets.MONGODB_CONNECTION_STRING }} >> .env
+                  echo OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} >> .env
+                  echo PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }} >> .env
+                  echo PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }} >> .env
+                  echo PINECONE_INDEX=${{ secrets.PINECONE_INDEX }} >> .env
             - name: npm install
               run: |
                   npm install

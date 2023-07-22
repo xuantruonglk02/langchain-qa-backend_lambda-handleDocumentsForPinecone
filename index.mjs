@@ -1,5 +1,6 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PineconeClient } from '@pinecone-database/pinecone';
+import dotenv from 'dotenv';
 import fs from 'fs';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
@@ -8,6 +9,8 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
 import mongoose from 'mongoose';
 import { cleanTmpDirectory, generateTmpFilePath } from './helpers.mjs';
+
+dotenv.config();
 
 const DocumentExtension = {
     DOCX: 'docx',
