@@ -2,8 +2,10 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PineconeClient } from '@pinecone-database/pinecone';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import { CSVLoader } from 'langchain/document_loaders/fs/csv';
 import { DocxLoader } from 'langchain/document_loaders/fs/docx';
 import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+import { TextLoader } from 'langchain/document_loaders/fs/text';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
@@ -13,8 +15,10 @@ import { cleanTmpDirectory, generateTmpFilePath } from './helpers.mjs';
 dotenv.config();
 
 const DocumentExtension = {
+    CSV: 'csv',
     DOCX: 'docx',
     PDF: 'pdf',
+    TXT: 'txt',
 };
 
 export const handler = async (event) => {
@@ -129,10 +133,14 @@ async function splitFile(tmpFilePath, fileExtension) {
 function getLoaderOfDocument(filePath, fileExtension) {
     try {
         switch (fileExtension) {
+            case DocumentExtension.CSV:
+                return new CSVLoader(filePath);
             case DocumentExtension.DOCX:
                 return new DocxLoader(filePath);
             case DocumentExtension.PDF:
                 return new PDFLoader(filePath);
+            case DocumentExtension.TXT:
+                return new TextLoader(filePath);
             default:
                 return null;
         }
@@ -144,8 +152,8 @@ function getLoaderOfDocument(filePath, fileExtension) {
 async function splitDocument(doc) {
     try {
         const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 1000,
-            chunkOverlap: 200,
+            chunkSize: 500,
+            chunkOverlap: 100,
             separators: ['\n\n', '\n', ' ', ''],
         });
         const splittedDoc = await splitter.splitDocuments(doc);
